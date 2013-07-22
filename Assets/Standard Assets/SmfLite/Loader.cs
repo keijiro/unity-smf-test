@@ -4,106 +4,62 @@ namespace SmfLite
 {
     public class Loader
     {
-        // MIDI message class.
-        struct Message
-        {
-            public byte status;
-            public byte data1;
-            public byte data2;
-            
-            public Message (byte status, byte data1, byte data2)
-            {
-                this.status = status;
-                this.data1 = data1;
-                this.data2 = data2;
-            }
-        };
-
-        // Variable-length value class.
-        struct VariableLengthValue
-        {
-            public int value;
-            public int length;
-
-            public VariableLengthValue (int value, int length)
-            {
-                this.value = value;
-                this.length = length;
-            }
-
-            public static VariableLengthValue ReadStream(System.IO.BinaryReader reader)
-            {
-                int value = 0;
-                int length = 0;
-                while (true) {
-                    int b = reader.ReadByte ();
-                    length++;
-                    value += b & 0x7f;
-                    if ((b & 0x80) == 0)
-                        break;
-                    value <<= 7;
-                }
-                return new VariableLengthValue(value, length);
-            }
-        };
-
-        public static string Load (byte[] data)
+        public List<Track> Load (byte[] data)
         {
             return Load (new System.IO.MemoryStream (data));
         }
 
-        public static string Load (System.IO.Stream stream)
+        public List<Track> Load (System.IO.Stream stream)
         {
+            var tracks = new List<Track> ();
             var reader = new System.IO.BinaryReader (stream);
 
             // Chunk type.
             if (new string (reader.ReadChars (4)) != "MThd") {
-                return "Invalid file header.";
+                throw new System.FormatException ("Can't find header chunk.");
             }
 
             // Chunk length.
-            if (ReadBE32 (reader) != 6) {
-                return "Invalid file header.";
+            if (Utility.ReadBE32 (reader) != 6) {
+                throw new System.FormatException ("Length of header chunk must be 6.");
             }
 
             // Format (unused).
             reader.ReadBytes (2);
 
             // Number of tracks.
-            var trackCount = ReadBE16 (reader);
+            var trackCount = Utility.ReadBE16 (reader);
 
             // Delta-time divisions.
-            var division = ReadBE16 (reader);
+            var division = Utility.ReadBE16 (reader);
             if ((division & 0x8000) != 0) {
-                return "Unsupported file type (SMPTE time code).";
+                throw new System.FormatException ("SMPTE time code is not supported.");
             }
 
             // Read the tracks.
             for (var trackIndex = 0; trackIndex < trackCount; trackIndex++) {
-                var error = ReadTrack (reader);
-                if (error != null)
-                    return error;
+                tracks.Add (ReadTrack (reader));
             }
 
-            return "Ok";
+            return tracks;
         }
 
-        static string ReadTrack (System.IO.BinaryReader reader)
+        Track ReadTrack (System.IO.BinaryReader reader)
         {
+            var track = new Track ();
+
             // Chunk type.
             if (new string (reader.ReadChars (4)) != "MTrk") {
-                return "Invalid file header.";
+                throw new System.FormatException ("Can't find track chunk.");
             }
             
             // Chunk length.
-            var remains = ReadBE32 (reader);
-
-            List<Message> events = new List<Message>();
+            var remains = Utility.ReadBE32 (reader);
 
             // Read delta-time and event pairs.
             while (remains > 0) {
-                var varlen = VariableLengthValue.ReadStream (reader);
-                remains -= varlen.length;
+                var delta = VariableLengthValue.ReadStream (reader);
+                remains -= delta.length;
 
                 var status = reader.ReadByte ();
                 remains--;
@@ -125,27 +81,15 @@ namespace SmfLite
                 } else if (messageType == 0xc || messageType == 0xd) {
                     var b1 = reader.ReadByte ();
                     remains--;
-                    events.Add(new Message(status, b1, 0));
+                    track.AddDeltaAndMessage (delta.value, new Message (status, b1, 0));
                 } else {
                     var b1 = reader.ReadByte ();
                     var b2 = reader.ReadByte ();
                     remains -= 2;
-                    events.Add(new Message(status, b1, b2));
+                    track.AddDeltaAndMessage (delta.value, new Message (status, b1, b2));
                 }
             }
-            return null;
-        }
-
-        static int ReadBE32 (System.IO.BinaryReader reader)
-        {
-            var bytes = reader.ReadBytes (4);
-            return bytes [3] + (bytes [2] << 8) + (bytes [1] << 16) + (bytes [0] << 24);
-        }
-
-        static int ReadBE16 (System.IO.BinaryReader reader)
-        {
-            var bytes = reader.ReadBytes (2);
-            return bytes [1] + (bytes [0] << 8);
+            return track;
         }
     }
 }

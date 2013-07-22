@@ -3,5 +3,6 @@
 var smf : TextAsset;
 
 function Start () {
-    Debug.Log(SmfLite.Loader.Load(smf.bytes));
+    var loader = SmfLite.Loader();
+    Debug.Log(loader.Load(smf.bytes)[0]);
 }
