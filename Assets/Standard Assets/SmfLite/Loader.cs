@@ -1,7 +1,25 @@
+using System.Collections.Generic;
+
 namespace SmfLite
 {
     public class Loader
     {
+        // MIDI message class.
+        struct Message
+        {
+            public byte status;
+            public byte data1;
+            public byte data2;
+            
+            public Message (byte status, byte data1, byte data2)
+            {
+                this.status = status;
+                this.data1 = data1;
+                this.data2 = data2;
+            }
+        };
+
+        // Variable-length value class.
         struct VariableLengthValue
         {
             public int value;
@@ -11,6 +29,21 @@ namespace SmfLite
             {
                 this.value = value;
                 this.length = length;
+            }
+
+            public static VariableLengthValue ReadStream(System.IO.BinaryReader reader)
+            {
+                int value = 0;
+                int length = 0;
+                while (true) {
+                    int b = reader.ReadByte ();
+                    length++;
+                    value += b & 0x7f;
+                    if ((b & 0x80) == 0)
+                        break;
+                    value <<= 7;
+                }
+                return new VariableLengthValue(value, length);
             }
         };
 
@@ -65,12 +98,12 @@ namespace SmfLite
             // Chunk length.
             var remains = ReadBE32 (reader);
 
+            List<Message> events = new List<Message>();
+
             // Read delta-time and event pairs.
             while (remains > 0) {
-                var varlen = ReadVariableLengthValue (reader);
+                var varlen = VariableLengthValue.ReadStream (reader);
                 remains -= varlen.length;
-
-                UnityEngine.Debug.Log ("delta:" + varlen.value);
 
                 var status = reader.ReadByte ();
                 remains--;
@@ -79,46 +112,28 @@ namespace SmfLite
                 if (messageType == 0xf) {
                     if (status == 0xf0 || status == 0xf7) {
                         // Sysex message.
-                        var sysexLength = ReadVariableLengthValue (reader);
+                        var sysexLength = VariableLengthValue.ReadStream (reader);
                         reader.ReadBytes (sysexLength.value);
                         remains -= sysexLength.value + sysexLength.length;
-                        UnityEngine.Debug.Log ("sysex");
                     } else if (status == 0xff) {
                         // Meta-event.
                         reader.ReadByte ();
-                        var metaEventLength = ReadVariableLengthValue (reader);
+                        var metaEventLength = VariableLengthValue.ReadStream (reader);
                         reader.ReadBytes (metaEventLength.value);
                         remains -= 1 + metaEventLength.value + metaEventLength.length;
-                        UnityEngine.Debug.Log ("meta");
                     }
                 } else if (messageType == 0xc || messageType == 0xd) {
                     var b1 = reader.ReadByte ();
                     remains--;
-                    UnityEngine.Debug.Log ("ev:" + b1);
+                    events.Add(new Message(status, b1, 0));
                 } else {
                     var b1 = reader.ReadByte ();
                     var b2 = reader.ReadByte ();
                     remains -= 2;
-                    UnityEngine.Debug.Log ("ev:" + b1 + "," + b2);
+                    events.Add(new Message(status, b1, b2));
                 }
-                UnityEngine.Debug.Log (remains);
             }
             return null;
-        }
-
-        static VariableLengthValue ReadVariableLengthValue (System.IO.BinaryReader reader)
-        {
-            int value = 0;
-            int length = 0;
-            while (true) {
-                int b = reader.ReadByte ();
-                length++;
-                value += b & 0x7f;
-                if ((b & 0x80) == 0)
-                    break;
-                value <<= 7;
-            }
-            return new VariableLengthValue (value, length);
         }
 
         static int ReadBE32 (System.IO.BinaryReader reader)
