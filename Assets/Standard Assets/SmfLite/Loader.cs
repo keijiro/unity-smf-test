@@ -7,7 +7,7 @@ namespace SmfLite
         public List<Track> Load (byte[] data)
         {
             var tracks = new List<Track> ();
-            var reader = new SimpleReader (data);
+            var reader = new StreamReader (data);
 
             // Chunk type.
             if (new string (reader.ReadChars (4)) != "MThd") {
@@ -39,7 +39,7 @@ namespace SmfLite
             return tracks;
         }
 
-        Track ReadTrack (SimpleReader reader)
+        Track ReadTrack (StreamReader reader)
         {
             var track = new Track ();
 

@@ -1,7 +1,7 @@
 namespace SmfLite
 {
-    // Simple binary reader class.
-    public class SimpleReader
+    // Simple binary stream reader class.
+    public class StreamReader
     {
         byte[] data;
         int offset;
@@ -10,7 +10,7 @@ namespace SmfLite
             get { return offset; }
         }
 
-        public SimpleReader (byte[] data)
+        public StreamReader (byte[] data)
         {
             this.data = data;
         }
