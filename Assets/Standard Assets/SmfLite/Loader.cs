@@ -20,7 +20,7 @@ namespace SmfLite
             }
 
             // Format (unused).
-            reader.ReadChars (2);
+            reader.Advance (2);
 
             // Number of tracks.
             var trackCount = reader.ReadBEInt16 ();
@@ -61,9 +61,8 @@ namespace SmfLite
 
                 if (ev == 0xff) {
                     // 0xff: Meta event (unused).
-                    reader.ReadByte ();
-                    var metaLength = reader.ReadMultiByteValue ();
-                    reader.ReadChars (metaLength.value);
+                    reader.Advance (1);
+                    reader.Advance (reader.ReadMultiByteValue ());
                 } else if (ev == 0xf0) {
                     // 0xf0: SysEx (unused).
                     while (reader.ReadByte() != 0xf7) {
@@ -71,13 +70,8 @@ namespace SmfLite
                 } else {
                     // MIDI event
                     byte data1 = reader.ReadByte ();
-
-                    byte data2 = 0;
-                    if ((ev & 0xe0) != 0xc0) {
-                        data2 = reader.ReadByte ();
-                    }
-
-                    track.AddDeltaAndMessage (delta.value, new Message (ev, data1, data2));
+                    byte data2 = ((ev & 0xe0) == 0xc0) ? (byte)0 : reader.ReadByte ();
+                    track.AddDeltaAndMessage (delta, new Message (ev, data1, data2));
                 }
             }
             return track;

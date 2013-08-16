@@ -1,18 +1,5 @@
 namespace SmfLite
 {
-    // Variable-length value class.
-    public struct MultiByteValue
-    {
-        public int value;
-        public int length;
-        
-        public MultiByteValue (int value, int length)
-        {
-            this.value = value;
-            this.length = length;
-        }
-    }
-
     // Simple binary reader class.
     public class SimpleReader
     {
@@ -28,13 +15,9 @@ namespace SmfLite
             this.data = data;
         }
 
-        public int PeekByte ()
+        public void Advance (int length)
         {
-            if (offset < data.Length) {
-                return data [offset];
-            } else {
-                return 0x100;
-            }
+            offset += length;
         }
 
         public byte ReadByte ()
@@ -67,19 +50,17 @@ namespace SmfLite
             return b2 + (b1 << 8);
         }
 
-        public MultiByteValue ReadMultiByteValue ()
+        public int ReadMultiByteValue ()
         {
             int value = 0;
-            int length = 0;
             while (true) {
                 int b = ReadByte ();
-                length++;
                 value += b & 0x7f;
                 if (b < 0x80)
                     break;
                 value <<= 7;
             }
-            return new MultiByteValue (value, length);
+            return value;
         }
     }
 }
