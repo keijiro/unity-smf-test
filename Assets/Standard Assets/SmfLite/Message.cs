@@ -16,7 +16,7 @@ namespace SmfLite
 
         public override string ToString ()
         {
-            return "[" + status + "," + data1 + "," + data2 + "]";
+            return "[" + status.ToString("X") + "," + data1.ToString("X") + "," + data2.ToString("X") + "]";
         }
     }
 }

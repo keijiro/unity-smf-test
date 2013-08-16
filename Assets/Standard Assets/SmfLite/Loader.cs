@@ -6,13 +6,8 @@ namespace SmfLite
     {
         public List<Track> Load (byte[] data)
         {
-            return Load (new System.IO.MemoryStream (data));
-        }
-
-        public List<Track> Load (System.IO.Stream stream)
-        {
             var tracks = new List<Track> ();
-            var reader = new System.IO.BinaryReader (stream);
+            var reader = new SimpleReader (data);
 
             // Chunk type.
             if (new string (reader.ReadChars (4)) != "MThd") {
@@ -20,18 +15,18 @@ namespace SmfLite
             }
 
             // Chunk length.
-            if (Utility.ReadBE32 (reader) != 6) {
+            if (reader.ReadBEInt32 () != 6) {
                 throw new System.FormatException ("Length of header chunk must be 6.");
             }
 
             // Format (unused).
-            reader.ReadBytes (2);
+            reader.ReadChars (2);
 
             // Number of tracks.
-            var trackCount = Utility.ReadBE16 (reader);
+            var trackCount = reader.ReadBEInt16 ();
 
             // Delta-time divisions.
-            var division = Utility.ReadBE16 (reader);
+            var division = reader.ReadBEInt16 ();
             if ((division & 0x8000) != 0) {
                 throw new System.FormatException ("SMPTE time code is not supported.");
             }
@@ -44,7 +39,7 @@ namespace SmfLite
             return tracks;
         }
 
-        Track ReadTrack (System.IO.BinaryReader reader)
+        Track ReadTrack (SimpleReader reader)
         {
             var track = new Track ();
 
@@ -54,39 +49,39 @@ namespace SmfLite
             }
             
             // Chunk length.
-            var remains = Utility.ReadBE32 (reader);
+            var remains = reader.ReadBEInt32 ();
 
             // Read delta-time and event pairs.
             while (remains > 0) {
-                var delta = VariableLengthValue.ReadStream (reader);
+                var delta = reader.ReadMultiByteValue ();
                 remains -= delta.length;
 
-                var status = reader.ReadByte ();
+                byte ev = reader.ReadByte ();
                 remains--;
 
-                var messageType = status >> 4;
-                if (messageType == 0xf) {
-                    if (status == 0xf0 || status == 0xf7) {
-                        // Sysex message.
-                        var sysexLength = VariableLengthValue.ReadStream (reader);
-                        reader.ReadBytes (sysexLength.value);
-                        remains -= sysexLength.value + sysexLength.length;
-                    } else if (status == 0xff) {
-                        // Meta-event.
-                        reader.ReadByte ();
-                        var metaEventLength = VariableLengthValue.ReadStream (reader);
-                        reader.ReadBytes (metaEventLength.value);
-                        remains -= 1 + metaEventLength.value + metaEventLength.length;
+                if (ev == 0xff) {
+                    // 0xff: Meta event (simply skip it)
+                    reader.ReadByte();
+                    var metaLength = reader.ReadMultiByteValue();
+                    reader.ReadChars(metaLength.value);
+                    remains -= 1 + metaLength.length + metaLength.value;
+                } else if (ev == 0xf0) {
+                    // 0xf0: SysEx (simply skip it)
+                    while (reader.ReadByte() != 0xf7) {
+                        remains--;
                     }
-                } else if (messageType == 0xc || messageType == 0xd) {
-                    var b1 = reader.ReadByte ();
-                    remains--;
-                    track.AddDeltaAndMessage (delta.value, new Message (status, b1, 0));
                 } else {
-                    var b1 = reader.ReadByte ();
-                    var b2 = reader.ReadByte ();
-                    remains -= 2;
-                    track.AddDeltaAndMessage (delta.value, new Message (status, b1, b2));
+                    // MIDI event
+                    byte data1 = reader.ReadByte();
+                    remains--;
+
+                    byte data2 = 0;
+                    if ((ev & 0xe0) != 0xc0) {
+                        data2 = reader.ReadByte();
+                        remains--;
+                    }
+
+                    track.AddDeltaAndMessage (delta.value, new Message (ev, data1, data2));
                 }
             }
             return track;
