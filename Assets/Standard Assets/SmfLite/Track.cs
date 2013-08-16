@@ -18,7 +18,7 @@ namespace SmfLite
 
             public override string ToString ()
             {
-                return "(" + delta + ":" + message + ")";
+                return "(" + delta.ToString ("X") + ":" + message + ")";
             }
         }
 

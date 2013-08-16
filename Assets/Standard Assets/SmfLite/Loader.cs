@@ -49,36 +49,32 @@ namespace SmfLite
             }
             
             // Chunk length.
-            var remains = reader.ReadBEInt32 ();
+            var chunkEnd = reader.Offset + reader.ReadBEInt32 ();
 
             // Read delta-time and event pairs.
-            while (remains > 0) {
+            while (reader.Offset < chunkEnd) {
+                // Delta time.
                 var delta = reader.ReadMultiByteValue ();
-                remains -= delta.length;
 
+                // Event type.
                 byte ev = reader.ReadByte ();
-                remains--;
 
                 if (ev == 0xff) {
-                    // 0xff: Meta event (simply skip it)
-                    reader.ReadByte();
-                    var metaLength = reader.ReadMultiByteValue();
-                    reader.ReadChars(metaLength.value);
-                    remains -= 1 + metaLength.length + metaLength.value;
+                    // 0xff: Meta event (unused).
+                    reader.ReadByte ();
+                    var metaLength = reader.ReadMultiByteValue ();
+                    reader.ReadChars (metaLength.value);
                 } else if (ev == 0xf0) {
-                    // 0xf0: SysEx (simply skip it)
+                    // 0xf0: SysEx (unused).
                     while (reader.ReadByte() != 0xf7) {
-                        remains--;
                     }
                 } else {
                     // MIDI event
-                    byte data1 = reader.ReadByte();
-                    remains--;
+                    byte data1 = reader.ReadByte ();
 
                     byte data2 = 0;
                     if ((ev & 0xe0) != 0xc0) {
-                        data2 = reader.ReadByte();
-                        remains--;
+                        data2 = reader.ReadByte ();
                     }
 
                     track.AddDeltaAndMessage (delta.value, new Message (ev, data1, data2));

@@ -19,15 +19,19 @@ namespace SmfLite
         byte[] data;
         int offset;
 
+        public int Offset {
+            get { return offset; }
+        }
+
         public SimpleReader (byte[] data)
         {
             this.data = data;
         }
 
-        public int PeekByte()
+        public int PeekByte ()
         {
             if (offset < data.Length) {
-                return data[offset];
+                return data [offset];
             } else {
                 return 0x100;
             }
