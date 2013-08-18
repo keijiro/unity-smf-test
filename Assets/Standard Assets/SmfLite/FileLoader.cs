@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace SmfLite
 {
-    public class Loader
+    public static class FileLoader
     {
-        public List<Track> Load (byte[] data)
+        public static FileContainer Load (byte[] data)
         {
             var tracks = new List<Track> ();
             var reader = new StreamReader (data);
@@ -36,10 +36,10 @@ namespace SmfLite
                 tracks.Add (ReadTrack (reader));
             }
 
-            return tracks;
+            return new FileContainer (division, tracks);
         }
 
-        Track ReadTrack (StreamReader reader)
+        static Track ReadTrack (StreamReader reader)
         {
             var track = new Track ();
 
@@ -74,6 +74,7 @@ namespace SmfLite
                     track.AddDeltaAndMessage (delta, new Message (ev, data1, data2));
                 }
             }
+               
             return track;
         }
     }

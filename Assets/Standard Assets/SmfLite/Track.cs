@@ -5,7 +5,7 @@ namespace SmfLite
     // MIDI track class.
     public class Track
     {
-        struct DeltaMessagePair
+        public struct DeltaMessagePair
         {
             public int delta;
             public Message message;
@@ -32,6 +32,11 @@ namespace SmfLite
         public void AddDeltaAndMessage (int delta, Message message)
         {
             sequence.Add (new DeltaMessagePair (delta, message));
+        }
+
+        public DeltaMessagePair GetAtIndex(int index)
+        {
+            return sequence[index];
         }
 
         public override string ToString ()
