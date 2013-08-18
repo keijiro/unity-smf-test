@@ -2,6 +2,14 @@
 
 var smf : TextAsset;
 
+private var seq : SmfLite.Sequencer;
+
 function Start () {
-    Debug.Log(SmfLite.FileLoader.Load(smf.bytes).tracks[0]);
+    var container = SmfLite.FileLoader.Load(smf.bytes);
+    seq = new SmfLite.Sequencer(container.tracks[0], container.division, 120);
+    Debug.Log(seq.Start());
+}
+
+function Update () {
+    Debug.Log(seq.Advance(Time.deltaTime));
 }

@@ -34,9 +34,14 @@ namespace SmfLite
             sequence.Add (new DeltaMessagePair (delta, message));
         }
 
-        public DeltaMessagePair GetAtIndex(int index)
+        public List<DeltaMessagePair>.Enumerator GetEnumerator ()
         {
-            return sequence[index];
+            return sequence.GetEnumerator ();
+        }
+
+        public DeltaMessagePair GetAtIndex (int index)
+        {
+            return sequence [index];
         }
 
         public override string ToString ()
