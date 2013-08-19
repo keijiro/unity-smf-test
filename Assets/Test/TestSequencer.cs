@@ -1,23 +1,24 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using SmfLite;
 
 public class TestSequencer : MonoBehaviour
 {
     public TextAsset sourceFile;
-    SmfLite.FileContainer song;
-    SmfLite.Sequencer sequencer;
+    MidiFileContainer song;
+    MidiTrackSequencer sequencer;
 
     void ResetAndPlay ()
     {
         audio.Play ();
-        sequencer = new SmfLite.Sequencer (song.tracks [0], song.division, 131.0f);
+        sequencer = new MidiTrackSequencer (song.tracks [0], song.division, 131.0f);
         ApplyMessages (sequencer.Start ());
     }
 
     IEnumerator Start ()
     {
-        song = SmfLite.FileLoader.Load (sourceFile.bytes);
+        song = MidiFileLoader.Load (sourceFile.bytes);
         yield return new WaitForSeconds (1.0f);
         ResetAndPlay ();
     }
@@ -29,7 +30,7 @@ public class TestSequencer : MonoBehaviour
         }
     }
 
-    void ApplyMessages (List<SmfLite.Message> messages)
+    void ApplyMessages (List<MidiEvent> messages)
     {
         if (messages != null) {
             foreach (var m in messages) {
