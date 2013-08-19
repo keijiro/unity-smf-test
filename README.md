@@ -1,4 +1,4 @@
-unity-smf
-=========
+unity-smf-test
+==============
 
-SMF (standard MIDI file) loader and sequencer for Unity.
+A sample project for [unity-smf](https://github.com/keijiro/unity-smf).
