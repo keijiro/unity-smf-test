@@ -11,7 +11,7 @@ namespace SmfLite
         float pulseToNext;
         float pulseCounter;
 
-        bool Playing {
+        public bool Playing {
             get { return playing; }
         }
 
@@ -56,7 +56,7 @@ namespace SmfLite
                 }
 
                 pulseCounter -= pulseToNext;
-                pulseToNext += enumerator.Current.delta;
+                pulseToNext = enumerator.Current.delta;
             }
 
             return messages;
