@@ -49,15 +49,19 @@ namespace SmfLite
             }
             
             // Chunk length.
-            var chunkEnd = reader.Offset + reader.ReadBEInt32 ();
+            var chunkEnd = reader.ReadBEInt32 ();
+            chunkEnd += reader.Offset;
 
             // Read delta-time and event pairs.
+            byte ev = 0;
             while (reader.Offset < chunkEnd) {
                 // Delta time.
                 var delta = reader.ReadMultiByteValue ();
 
                 // Event type.
-                byte ev = reader.ReadByte ();
+                if ((reader.PeekByte () & 0x80) != 0) {
+                    ev = reader.ReadByte ();
+                }
 
                 if (ev == 0xff) {
                     // 0xff: Meta event (unused).
